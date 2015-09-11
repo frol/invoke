@@ -322,8 +322,21 @@ class Runner(object):
                     # Can't use six.b because that just assumes latin-1 :(
                     data = data.encode(self.encoding)
                 yield data
-        # Decode stream using our generator & requested encoding
-        for data in codecs.iterdecode(get(), self.encoding, errors='replace'):
+        if self.encoding == output.encoding:
+            # No need in re-encoding if source and target encodings are the same
+            data_stream = get()
+        else:
+            # Re-encode from user requested encoding to the output encoding
+            data_stream = codecs.iterencode(
+                codecs.iterdecode(
+                    get(),
+                    self.encoding,
+                    errors='replace'
+                ),
+                output.encoding,
+                errors='replace'
+            )
+        for data in data_stream:
             if not hide:
                 output.write(data)
                 output.flush()

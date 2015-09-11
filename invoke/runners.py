@@ -216,7 +216,7 @@ class Runner(object):
             err_stream = sys.stderr
         # Echo
         if opts['echo']:
-            print("\033[1;37m{0}\033[0m".format(command))
+            print(u"\033[1;37m{0}\033[0m".format(command))
         # Determine pty or no
         self.using_pty = self.should_use_pty(opts['pty'], opts['fallback'])
         # Initiate command & kick off IO threads

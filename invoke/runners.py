@@ -322,8 +322,9 @@ class Runner(object):
                     # Can't use six.b because that just assumes latin-1 :(
                     data = data.encode(self.encoding)
                 yield data
-        if self.encoding == output.encoding:
-            # No need in re-encoding if source and target encodings are the same
+        if not hasattr(output, 'encoding') or self.encoding == output.encoding:
+            # No need in re-encoding if output is a BytesIO or CarbonCopy, or
+            # source and target encodings are the same
             data_stream = get()
         else:
             # Re-encode from user requested encoding to the output encoding

@@ -490,7 +490,7 @@ class Local(Runner):
             )
 
     def default_encoding(self):
-        return locale.getpreferredencoding(False)
+        return locale.getpreferredencoding()
 
     def wait(self):
         if self.using_pty:

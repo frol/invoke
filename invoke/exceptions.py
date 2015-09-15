@@ -19,6 +19,7 @@ class CollectionNotFound(Exception):
         self.start = start
 
 
+@six.python_2_unicode_compatible
 class Failure(Exception):
     """
     Exception subclass representing failure of a command execution.
@@ -30,20 +31,17 @@ class Failure(Exception):
         self.result = result
 
     def __str__(self):
-        err_label = "Stderr"
+        err_label = u"Stderr"
         err_text = self.result.stderr
         if self.result.pty:
-            err_label = "Stdout (pty=True; no stderr possible)"
+            err_label = u"Stdout (pty=True; no stderr possible)"
             err_text = self.result.stdout
-        return """Command execution failure!
-
-Exit code: {0}
-
-{1}:
-
-{2}
-
-""".format(self.result.exited, err_label, err_text)
+        return (
+            u"Command execution failure!\n"
+            u"Exit code: {0}\n"
+            u"{1}:\n"
+            u"{2}"
+        ).format(self.result.exited, err_label, err_text)
 
     def __repr__(self):
         return str(self)
@@ -133,6 +131,7 @@ def _printable_kwargs(kwargs):
         printable[key] = item
     return printable
 
+@six.python_2_unicode_compatible
 class ThreadException(Exception):
     """
     One or more exceptions were raised within background (usually I/O) threads.
@@ -165,7 +164,7 @@ class ThreadException(Exception):
         details = []
         for x in self.exceptions:
             # Build useful display
-            detail = "Thread args: {0}\n\n{1}"
+            detail = u"Thread args: {0}\n\n{1}"
             details.append(detail.format(
                 pformat(_printable_kwargs(x.kwargs)),
                 "\n".join(format_exception(x.type, x.value, x.traceback)),
@@ -175,9 +174,7 @@ class ThreadException(Exception):
             ", ".join(x.type.__name__ for x in self.exceptions),
             "\n\n".join(details),
         )
-        return """
-Saw {0} exceptions within threads ({1}):
-
-
-{2}
-""".format(*args)
+        return (
+            u"Saw {0} exceptions within threads ({1}):\n"
+            u"{2}"
+        ).format(*args)

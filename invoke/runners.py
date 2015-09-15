@@ -210,13 +210,24 @@ class Runner(object):
         # Derive stream objects
         out_stream = opts['out_stream']
         if out_stream is None:
-            out_stream = sys.stdout
+            out_stream = self.wrap_output(sys.stdout)
         err_stream = opts['err_stream']
         if err_stream is None:
-            err_stream = sys.stderr
+            err_stream = self.wrap_output(sys.stderr)
         # Echo
         if opts['echo']:
-            print(u"\033[1;37m{0}\033[0m".format(command))
+            if isinstance(command, six.text_type):
+                unicode_command = command
+            else:
+                if six.PY2:
+                    unicode_command = u'b{0}'.format(repr(command))
+                else:
+                    unicode_command = repr(command)
+            # Use a wrapped sys.stdout to avoid encoding errors (errors will
+            # be replaced with backslashed unicode codes)
+            self.wrap_output(sys.stdout).write(
+                u"\033[1;37m{0}\033[0m\n".format(unicode_command)
+            )
         # Determine pty or no
         self.using_pty = self.should_use_pty(opts['pty'], opts['fallback'])
         # Initiate command & kick off IO threads
@@ -322,26 +333,33 @@ class Runner(object):
                     # Can't use six.b because that just assumes latin-1 :(
                     data = data.encode(self.encoding)
                 yield data
-        if not hasattr(output, 'encoding') or self.encoding == output.encoding:
-            # No need in re-encoding if output is a BytesIO or CarbonCopy, or
-            # source and target encodings are the same
-            data_stream = get()
-        else:
-            # Re-encode from user requested encoding to the output encoding
-            data_stream = codecs.iterencode(
-                codecs.iterdecode(
-                    get(),
-                    self.encoding,
-                    errors='replace'
-                ),
-                output.encoding,
-                errors='replace'
-            )
-        for data in data_stream:
+        # Decode stream using our generator & requested encoding
+        for data in codecs.iterdecode(get(), self.encoding, errors='replace'):
             if not hide:
                 output.write(data)
                 output.flush()
             buffer_.append(data)
+
+    def wrap_output(self, stream):
+        """
+        Wraps a ``stream`` with ``codecs.StreamWriter`` where encoding errors
+        are replaced.
+        """
+        if hasattr(stream, 'buffer'):
+            output_buffer = stream.buffer
+        else:
+            output_buffer = stream
+
+        # NOTE: sys.stdout.encoding returns None on Python 2.x when
+        # C locale is used
+        stream_encoding = getattr(stream, 'encoding', None)
+        if stream_encoding is None:
+            stream_encoding = self.default_encoding()
+
+        return codecs.getwriter(stream_encoding)(
+            output_buffer,
+            errors='backslashreplace'
+        )
 
     def should_use_pty(self, pty, fallback):
         """
@@ -490,7 +508,21 @@ class Local(Runner):
             )
 
     def default_encoding(self):
-        return locale.getpreferredencoding()
+        # Based on some experiments there is an issue with
+        # `locale.getpreferredencoding(do_setlocale=False)` in Python 2.x on
+        # Linux and OS X, and `locale.getpreferredencoding(do_setlocale=True)`
+        # triggers some global state changes:
+        # https://github.com/pyinvoke/invoke/pull/274/
+        if six.PY2 and not WINDOWS:
+            # This is a workaround, please, report if there is a case when it
+            # doesn't work.
+            default_locale_encoding = locale.getdefaultlocale()[1]
+            # It is known that when default locale is C (POSIX), Python
+            # returns None.
+            if default_locale_encoding is not None:
+                return default_locale_encoding
+        # This is a preferred way of getting a default encoding.
+        return locale.getpreferredencoding(False)
 
     def wait(self):
         if self.using_pty:
@@ -514,6 +546,7 @@ class Local(Runner):
             return self.process.returncode
 
 
+@six.python_2_unicode_compatible
 class Result(object):
     """
     A container for information about the result of a command execution.
@@ -556,13 +589,14 @@ class Result(object):
         return self.__nonzero__()
 
     def __str__(self):
-        ret = ["Command exited with status {0}.".format(self.exited)]
+        ret = [u"Command exited with status {0}.".format(self.exited)]
         for x in ('stdout', 'stderr'):
             val = getattr(self, x)
-            ret.append("""=== {0} ===
-{1}
-""".format(x, val.rstrip()) if val else "(no {0})".format(x))
-        return "\n".join(ret)
+            if val:
+                ret.append(u"=== {0} ===\n{1}".format(x, val.rstrip()))
+            else:
+                ret.append(u"(no {0})".format(x))
+        return u"\n".join(ret)
 
     @property
     def ok(self):

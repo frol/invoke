@@ -221,7 +221,7 @@ class Runner(object):
                 unicode_command = command
             else:
                 if six.PY2:
-                    unicode_command = u'b{0}'.format(repr(command))
+                    unicode_command = "b{0}".format(repr(command))
                 else:
                     unicode_command = repr(command)
             # Use a wrapped sys.stdout to avoid encoding errors (errors will
@@ -489,7 +489,7 @@ class Local(Runner):
                 # Set pty window size based on what our own controlling
                 # terminal's window size appears to be.
                 # TODO: make subroutine?
-                winsize = struct.pack('HHHH', rows, cols, 0, 0)
+                winsize = struct.pack(b'HHHH', rows, cols, 0, 0)
                 fcntl.ioctl(sys.stdout.fileno(), termios.TIOCSWINSZ, winsize)
                 # Use execv for bare-minimum "exec w/ variable # args"
                 # behavior. No need for the 'p' (use PATH to find executable)

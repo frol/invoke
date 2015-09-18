@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from __future__ import unicode_literals
 
 import codecs
 import locale
@@ -226,7 +227,7 @@ class Runner(object):
             # Use a wrapped sys.stdout to avoid encoding errors (errors will
             # be replaced with backslashed unicode codes)
             self.wrap_output(sys.stdout).write(
-                u"\033[1;37m{0}\033[0m\n".format(unicode_command)
+                "\033[1;37m{0}\033[0m\n".format(unicode_command)
             )
         # Determine pty or no
         self.using_pty = self.should_use_pty(opts['pty'], opts['fallback'])
@@ -589,14 +590,14 @@ class Result(object):
         return self.__nonzero__()
 
     def __str__(self):
-        ret = [u"Command exited with status {0}.".format(self.exited)]
+        ret = ["Command exited with status {0}.".format(self.exited)]
         for x in ('stdout', 'stderr'):
             val = getattr(self, x)
             if val:
-                ret.append(u"=== {0} ===\n{1}".format(x, val.rstrip()))
+                ret.append("=== {0} ===\n{1}".format(x, val.rstrip()))
             else:
-                ret.append(u"(no {0})".format(x))
-        return u"\n".join(ret)
+                ret.append("(no {0})".format(x))
+        return "\n".join(ret)
 
     @property
     def ok(self):

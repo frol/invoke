@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 import locale
 import sys
 import types
@@ -191,7 +193,7 @@ class Runner_(Spec):
 
         @trap
         def uses_ansi_bold_for_unicode(self):
-            self._run(u"my command", echo=True)
+            self._run("my command", echo=True)
             # TODO: vendor & use a color module
             eq_(sys.stdout.getvalue(), "\x1b[1;37mmy command\x1b[0m\n")
 

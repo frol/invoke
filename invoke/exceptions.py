@@ -6,6 +6,8 @@ exceptions used for message-passing" to simply "we needed to express an error
 condition in a way easily told apart from other, truly unexpected errors".
 """
 
+from __future__ import unicode_literals
+
 from collections import namedtuple
 from traceback import format_exception
 from pprint import pformat
@@ -31,16 +33,16 @@ class Failure(Exception):
         self.result = result
 
     def __str__(self):
-        err_label = u"Stderr"
+        err_label = "Stderr"
         err_text = self.result.stderr
         if self.result.pty:
-            err_label = u"Stdout (pty=True; no stderr possible)"
+            err_label = "Stdout (pty=True; no stderr possible)"
             err_text = self.result.stdout
         return (
-            u"Command execution failure!\n"
-            u"Exit code: {0}\n"
-            u"{1}:\n"
-            u"{2}"
+            "Command execution failure!\n"
+            "Exit code: {0}\n"
+            "{1}:\n"
+            "{2}"
         ).format(self.result.exited, err_label, err_text)
 
     def __repr__(self):
@@ -164,7 +166,7 @@ class ThreadException(Exception):
         details = []
         for x in self.exceptions:
             # Build useful display
-            detail = u"Thread args: {0}\n\n{1}"
+            detail = "Thread args: {0}\n\n{1}"
             details.append(detail.format(
                 pformat(_printable_kwargs(x.kwargs)),
                 "\n".join(format_exception(x.type, x.value, x.traceback)),
@@ -175,6 +177,6 @@ class ThreadException(Exception):
             "\n\n".join(details),
         )
         return (
-            u"Saw {0} exceptions within threads ({1}):\n"
-            u"{2}"
+            "Saw {0} exceptions within threads ({1}):\n"
+            "{2}"
         ).format(*args)

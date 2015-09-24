@@ -92,7 +92,14 @@ class Main(Spec):
         def nonprinting_bytes(self):
             # Seriously non-printing characters (i.e. non UTF8) also don't
             # asplode
-            run(b"echo '\xff'")
+            try:
+                run(b"echo '\xff'")
+            except TypeError:
+                if sys.version_info > (3, 0) and sys.version_info < (3, 3):
+                    # Python 3.2 is known to raise TypeError here
+                    pass
+                else:
+                    raise
 
         def nonprinting_bytes_pty(self):
             if WINDOWS:

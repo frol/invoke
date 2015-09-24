@@ -24,6 +24,8 @@ script:
   - inv test
   # Slow, annoying-to-run-every-time integration suite
   - inv integration
+  # Check whether encoding is handled right
+  - LC_ALL=C inv integration
   # Websites build OK? (NOTE: sphinx/jinja are fucked on Python 3.2 now?)
   - "[[ $TRAVIS_PYTHON_VERSION == 3.2 ]] || inv sites"
   # Did we break setup.py?

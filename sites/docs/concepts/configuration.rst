@@ -251,7 +251,7 @@ the root will win, versus inner ones closer to the task being invoked.
 
 A quick example of what this means::
 
-    from invoke import Collection, ctask as task
+    from invoke import Collection, task
 
     # This task & collection could just as easily come from another module
     # somewhere.
@@ -277,60 +277,59 @@ Example
 Setup
 -----
 
-As an example, we'll start out with some semi-realistic, non-contextualized
-tasks that hardcode their values, and build up to using the various
-configuration mechanisms. A small module for building `Sphinx
-<http://sphinx-doc.org>`_ docs might start out like this::
+As an example, we'll start out with semi-realistic tasks that hardcode their
+values, and build up to using the various configuration mechanisms. A small
+module for building `Sphinx <http://sphinx-doc.org>`_ docs might start out like
+this::
 
-    from invoke import task, run
-
-    @task
-    def clean():
-        run("rm -rf docs/_build")
+    from invoke import task
 
     @task
-    def build():
-        run("sphinx-build docs docs/_build")
+    def clean(ctx):
+        ctx.run("rm -rf docs/_build")
+
+    @task
+    def build(ctx):
+        ctx.run("sphinx-build docs docs/_build")
 
 Then maybe you refactor the build target::
 
     target = "docs/_build"
 
     @task
-    def clean():
-        run("rm -rf {0}".format(target))
+    def clean(ctx):
+        ctx.run("rm -rf {0}".format(target))
 
     @task
-    def build():
-        run("sphinx-build docs {0}".format(target))
+    def build(ctx):
+        ctx.run("sphinx-build docs {0}".format(target))
 
 We can also allow runtime parameterization::
 
     default_target = "docs/_build"
 
     @task
-    def clean(target=default_target):
-        run("rm -rf {0}".format(target))
+    def clean(ctx, target=default_target):
+        ctx.run("rm -rf {0}".format(target))
 
     @task
-    def build(target=default_target):
-        run("sphinx-build docs {0}".format(target))
+    def build(ctx, target=default_target):
+        ctx.run("sphinx-build docs {0}".format(target))
 
 This task module works for a single set of users, but what if we want to allow
 reuse? Somebody may want to use this module with a different default target.
-You *can* kludge it using non-contextualized tasks, but using a context to
-configure these settings is usually the better solution [1]_.
+Using the configuration data (made available via the context arg) to configure
+these settings is usually the better solution [1]_.
 
-Switching to contexts
----------------------
+Configuring via task collection
+-------------------------------
 
 The configuration `setting <.Collection.configure>` and `getting
 <.Context.config>` APIs make it easy to move otherwise 'hardcoded' default
 values into a config structure which downstream users are free to redefine.
-Let's apply this to our example. First we switch to using contextualized tasks
-and add an explicit namespace object::
+Let's apply this to our example. First we add an explicit namespace object::
 
-    from invoke import Collection, ctask as task
+    from invoke import Collection, task
 
     default_target = "docs/_build"
 
@@ -360,8 +359,6 @@ runtime value was given.  The result::
     ns = Collection(clean, build)
     ns.configure({'sphinx': {'target': "docs/_build"}})
 
-.. TODO: change all [foo.bar] shit into [foo][bar]
-
 The result isn't significantly more complex than what we began with, and as
 we'll see next, it's now trivial for users to override your defaults in various
 ways.
@@ -374,7 +371,7 @@ tree into which a distributed module has been imported. E.g. if the above
 module is distributed as ``myproject.docs``, someone can define a ``tasks.py``
 that does this::
 
-    from invoke import Collection, ctask as task
+    from invoke import Collection, task
     from myproject import docs
 
     @task
@@ -412,4 +409,3 @@ additional configuration methods which may be suitable depending on your needs.
     module-level ``default_path`` variable won't play well with concurrency;
     wrapping the tasks with different default arguments works but is fragile
     and adds boilerplate.
-

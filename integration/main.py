@@ -1,14 +1,19 @@
 from __future__ import unicode_literals
 
+import io
 import os
 import sys
 
 from spec import Spec, trap, eq_, skip, ok_
 
+from invoke.vendor import six
+
 from invoke import run
 from invoke._version import __version__
 from invoke.exceptions import Failure
 from invoke.platform import WINDOWS
+
+from _util import only_utf8
 
 
 def _output_eq(cmd, expected):
@@ -80,20 +85,26 @@ class Main(Spec):
         skip()
 
     class funky_characters_in_stdout:
+        def setup(self):
+            class BadlyBehavedStdout(io.TextIOBase):
+                def write(self, data):
+                    if six.PY2 and not isinstance(data, six.binary_type):
+                        data.encode('ascii')
+            self.bad_stdout = BadlyBehavedStdout()
+
+        @only_utf8
         def basic_nonstandard_characters(self):
             os.chdir('_support')
             # Crummy "doesn't explode with decode errors" test
-            if WINDOWS:
-                cmd = "type tree.out"
-            else:
-                cmd = "cat tree.out"
-            run(cmd)
+            cmd = ("type" if WINDOWS else "cat") + " tree.out"
+            run(cmd, out_stream=self.bad_stdout)
 
+        @only_utf8
         def nonprinting_bytes(self):
             # Seriously non-printing characters (i.e. non UTF8) also don't
             # asplode
             try:
-                run(b"echo '\xff'")
+                run("echo '\xff'", out_stream=self.bad_stdout)
             except TypeError:
                 if sys.version_info > (3, 0) and sys.version_info < (3, 3):
                     # Python 3.2 is known to raise TypeError here
@@ -101,11 +112,12 @@ class Main(Spec):
                 else:
                     raise
 
+        @only_utf8
         def nonprinting_bytes_pty(self):
             if WINDOWS:
                 return
             # PTY use adds another utf-8 decode spot which can also fail.
-            run(b"echo '\xff'", pty=True)
+            run("echo '\xff'", pty=True, out_stream=self.bad_stdout)
 
         def nonprinting_bytes_in_unicode(self):
             # Seriously non-printing characters (i.e. non UTF8) should fail as
